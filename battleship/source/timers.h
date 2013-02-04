@@ -17,7 +17,7 @@
 void Wait(int seconds)
 {
 //Start the timer
-REG_TM3CNT = TIME_FREQUENCY_1024 | TIME_ENABLE;
+REG_TM3CNT = FREQUENCY_1024 | TIMER_ENABLE;
 //zero the timer
 REG_TM3D = 0;
 while(seconds--)

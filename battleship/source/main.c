@@ -1,4 +1,5 @@
 #include "gba.h"
+#include "time.h"
 #include "screenmode.h"
 #include "keypad.h"
 #include "gfx.h"
@@ -10,11 +11,14 @@
 #include "gfx/intro.h"
 #include "gfx/circle.h"
 #include "sound/intro.h"
+#include "sound/song.h"
+#include "sound.h" 
 
 #define MAXROW (10)
 #define MAXCOL (10)
 
 #define TIMER_INTERVAL      (0xFFFF - (761*2))
+#define FREQ 190
 
 #define GAMEPAK_RAM  ((u8*)0x0E000000)
 u8 *pSaveMemory = GAMEPAK_RAM;
@@ -99,8 +103,6 @@ void shapes(int numx, int numy, int num);
 int main1(void);
 int main2(void);
 int nameinput(char namesent[]);
-void DmaPlaySound (void);
-void InterruptProcess(void);
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -125,10 +127,10 @@ int main(void)
             paletteMem[x] = logoPalette[x];
 
         DoIntro();
+        PlayDirectSoundA((u8*)INTRO_DATA,INTRO_SAMPRATE,(INTRO_LENGTH)/(INTRO_SAMPRATE));
 
-        DmaPlaySound();
         Sleep(55);
-        InterruptProcess(); // halt the dma now that the sample is done
+        PlayDirectSoundA((u8*)SONG_DATA,SONG_SAMPRATE,(SONG_LENGTH)/(SONG_SAMPRATE));
 
         DoIntro2();
 
@@ -150,11 +152,10 @@ int main(void)
 
         while(end!=1)
         {
-
+            UpdateDirectSoundA();
             EraseScreen();
             WaitForVblank();
             Flip();
-
 
             writetext(30,65, "One Player Game_");
 
@@ -221,7 +222,7 @@ int main1 (void)
     gamemode=1;
 
     //start timer
-    REG_TM3CNT = TIME_FREQUENCY_1024 | TIME_ENABLE;
+    REG_TM3CNT = FREQUENCY_1024 | TIMER_ENABLE;
     //zero the timer
     REG_TM3D = 0;
 
@@ -737,7 +738,7 @@ int main2 (void)
     gamemode=2;
 
     //start timer
-    REG_TM3CNT = TIME_FREQUENCY_1024 | TIME_ENABLE;
+    REG_TM3CNT = FREQUENCY_1024 | TIMER_ENABLE;
     //zero the timer
     REG_TM3D = 0;
 
@@ -1495,8 +1496,11 @@ void WaitForStart(void)
 void WaitForA(void)
 {
     while (1) // loops infinitely till they press start
+    {
+        UpdateDirectSoundA();
         if (! ((*KEYS) & KEY_A) )
             return;
+    }
 }
 
 //******************************************************************************
@@ -2057,45 +2061,6 @@ int nameinput(char namesent[])
     namesent[posz]='_';
 
     return posz;
-}
-
-//******************************************************************************
-void DmaPlaySound (void){
-
-    //Play a mono sound at 16khz in DMA mode Direct Sound
-    //uses timer 0 as sampling rate source
-    //uses timer 1 to count the samples played in order to stop the sound
-    REG_SOUNDCNT_L=0;
-    REG_SOUNDCNT_H=0x0b0F;  //DS A&B + fifo reset + timer0 + max volume to L and R
-    REG_SOUNDCNT_X=0x0080;  //turn sound chip on
-
-    REG_DMA1SAD=(unsigned char) INTRO_DATA;	//dma1 source
-    REG_DMA1DAD=0x040000a0; //write to FIFO A address
-    REG_DMA1CNT_H=0xb600;	//dma control: DMA enabled+ start on FIFO+32bit+repeat
-
-    REG_TM1CNT_L=(0xffff-24334);   //0x7098;	//0xffff-the number of samples to play
-    REG_TM1CNT_H=0xC4;		//enable timer1 + irq and cascade from timer 0
-
-    REG_IE=0x10;	  	//enable irq for timer 1 overflow
-    REG_IME=1;				//enable interrupt
-
-    //Formula for playback frequency is: 0xFFFF-round(cpuFreq/playbackFreq)
-    REG_TM0CNT_L=TIMER_INTERVAL;	//16khz playback freq         0xFBE8
-    REG_TM0CNT_H=0x0080; 	//enable timer at CPU freq
-
-}
-
-
-
-//******************************************************************************
-void InterruptProcess(void)
-{
-    //sample finished!,stop Direct sound
-    REG_TM0CNT_H=0; //disable timer 0
-    REG_DMA1CNT_H=0; //stop DMA
-
-    //clear the interrupt(s)
-    REG_IF |= REG_IF;
 }
 
 void Sleep(int i) {
