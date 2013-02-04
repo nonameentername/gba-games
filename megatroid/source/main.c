@@ -1,4 +1,4 @@
- /********************************************************
+/********************************************************
 *	
 * no title
 *
@@ -7,38 +7,9 @@
 ///////////////////Includes//////////////////////
 #include "lib.h"	
 #include "myfunctions.h"
+#include "gfx/graphics.h"
+#include "sound/sound.h" 
 #include "boyscout.cpp"
-//sound files
-#include "sound/tune.cpp"
-#include "sound/boss.cpp"
-#include "sound/rock.cpp"
-#include "sound/music.cpp"
-#include "sound/fire.h"
-#include "sound/jump.h"
-#include "sound/mega.h"
-#include "sound/swap.h"
-//graphic files
-#include "gfx/logo.h"
-#include "gfx/megatroid.h"
-#include "gfx/gbax.h"
-#include "gfx/terminal.h" //letters italic serif
-#include "gfx/shapes.h"
-
-#include "gfx/guy.h" 
-#include "gfx/background.h" 
-#include "gfx/backMap.h" 
-#include "gfx/textmap.h" 
-#include "gfx/bloob.h" 
-#include "gfx/snake.h" 
-#include "gfx/foreground.h" 
-//maps
-#include "gfx/map1.h"
-#include "gfx/map2.h"
-#include "gfx/map3.h"
-#include "gfx/map4.h"
- 
-
-
 
 //multiboot support
 #define MULTIBOOT volatile const u8 __gba_multiboot;
@@ -105,7 +76,6 @@ u8 bL; //button L
 
 u8 difficulty;
 u8 dimension=1;
-u8 level;
 
 const unsigned char monsterstack[2][20]={
 {34,72,38, 3,62,88,26,10,51,52,34,90,58,90,25,20,48,47,73, 5},
@@ -114,6 +84,7 @@ const unsigned char monsterstack[2][20]={
 
 u8 currentstack1;
 u8 currentstack2=10;
+u8 level;
 
 ///////////////Function Prototypes////////////////
 void Setup(void);
@@ -135,16 +106,23 @@ void movebullets();
 void updateTime(u8 d);
 void loadMap(u8 m);
 void options(void);
+void graphics(void);
+
+void level1(void);
+void level2(void);
+void level3(void);
+
+
 ///////////////// Main ///////////////////////////
 int main(void)
 {
 	u8 x,y;
 
-	
 	//display icon
   SetupMusic();
+  BoyScoutOpenSong((unsigned char *)rock);
   DoIntro();
-  BoyScoutStopSong();
+  //BoyScoutStopSong();
 
 	 //Setup the graphics
 	 Setup();
@@ -158,65 +136,203 @@ int main(void)
    DrawTile(x,y,backMap[y][x],ScreenMem10,2);
 	 DrawTile(x,y,currentMap[y+Map.y][x+Map.x],ScreenMem6,1);
    }
-     
+ 
   options();
+  textWindow("You have control of time");
+  textWindow("Warp between dimensions");
+  textWindow("to survive");
   
-  //Assign the starting values
+  level=1;
+  
+ while(1)
+ { 
+ 
+	switch(level)
+	  {
+	case 1:level1();break;
+  case 2:level2();break;
+  case 3:level3();break;
+  case 4:
+   
+  textWindow("Game Complete");
+  level=1;
+  break;
+    }
+ }
+}
+
+//******************************************************************************
+void level1(void)
+{ 
+	min=0;
+	sec=0;
+	millisec=0;
+	  switch(difficulty)
+	    {
+		case 2:sec=15; 
+       break;
+	  case 0:sec=30;
+       break;
+    case 1:min=1;
+       break;
+      }
+	 
+  end=1;
+  textWindow("Level 1");
+  textWindow("Find The Exit");
+  
+  dimension=1;
+  loadMap(dimension); //load the map
+ 
 	guy.x=32;
   guy.y=40;
   guy.lor=1;
-  
-  end=1;
-  
-	textWindow("Level 0");
-	textWindow("Find The Exit");
-	
-	Map.w=400;
+  Map.w=400;
   Map.h=400;
-  
-  BoyScoutOpenSong((unsigned char *)boss);
-  loadMap(1);
-  
-  
+  baddy[0].x=Map.w; 
+	baddy[0].y=Map.h;
+	baddy[1].x=Map.w; 
+	baddy[1].y=Map.h;
+
+  //BoyScoutStopSong();
+  //BoyScoutOpenSong((unsigned char *)music);
 
 	// Play song and loop
-	BoyScoutPlaySong(1);
+	//BoyScoutPlaySong(1);
    
 	//Main Loop
 	while(end)
 	{	
   
 	 KeyCheck(); //check for the keys and move main character
-	 
    mapBoundery(); //make sure x and y on the map are possitive
-  
-   movebaddys(); //move the badguys
-   
    movebullets(); //move bullets and check collision
-   
-   updateTime(DOWN);  //increase the time
-   
-   WriteText(20, 30, 2, 20, "KILLS:", 4, 0, 0);
-   WriteNum(26, 30, 2, 20,kills, 4, 0, 0);
-   
-   
-   
+   updateTime(DOWN);  //increase or decrease the time
+      
    if(min==0&&sec==0&&millisec==0)  //if time runs out
    {
 	textWindow("Time is up");
 	
-	if(level==1)
-	  {
+  scroll(UP);
+  WriteText(3, 30, 17, 20, "Mission Failed:", 4, 0, 0);
+  WaitKey(KEY_A);
+  WriteText(3, 30, 17, 20, "                        ", 4, 0, 0);
+  scroll(DOWN);
+  end=0;
+   }
+   
+   if(guy.x>>3==2 && guy.y>>3==32 && dimension==1)
+   {
+	  textWindow("Mission Complete");
+	  end=0; 
+	  level++;
+   }
+   
+	if(!checkMapCollision(guy.x+4,guy.y+4,16,32)&&!checkMapCollision(guy.x+7,guy.y+4,8,32)) // if the guy inside a wall
+	{
+	 guy.x=32;guy.y=40; Map.xoffset=0;Map.yoffset=0;
+	 textWindow("Your matter dispersed");
+	 dimension=1;
+	 loadMap(dimension);
+  }   
+
+	graphics(); // draw sprites, move sceen update sound     
+	}
+	
+}
+
+//******************************************************************************
+void level2(void)
+{  
+	min=0;
+	sec=0;
+	millisec=0;
+	  switch(difficulty)
+	    {
+		case 2:min=3; 
+       break;
+	  case 0:min=5;
+       break;
+    case 1:min=10;
+       break;
+      }
+	
+  end=1;
+  textWindow("Level 2");
+  textWindow("Destroy all Brain Cells");
+  
+  dimension=1;
+  loadMap(dimension); //load the map
+ 
+	guy.x=32;
+  guy.y=40;
+  guy.lor=1;
+  Map.w=800;
+  Map.h=800;
+  
+  currentstack1=0;
+  currentstack2=10;
+  kills=0;
+  
+  
+  baddy[0].x=monsterstack[0][currentstack1]<<3; 
+	baddy[0].y=monsterstack[1][currentstack1]<<3;
+	currentstack1++;
+  baddy[0].w=16;
+  baddy[0].h=8;
+  
+	baddy[1].x=monsterstack[0][currentstack2]<<3; 
+	baddy[1].y=monsterstack[1][currentstack2]<<3;
+	currentstack2++;
+  baddy[1].w=16;
+  baddy[1].h=8;
+  
+  
+  //BoyScoutOpenSong((unsigned char *)boss);
+
+	// Play song and loop
+	//BoyScoutPlaySong(1);
+   
+	//Main Loop
+	while(end)
+	{	
+  
+	 KeyCheck(); //check for the keys and move main character
+   mapBoundery(); //make sure x and y on the map are possitive
+   movebaddys(); //move the badguys
+   movebullets(); //move bullets and check collision
+   updateTime(DOWN);  //increase or decrease the time
+   
+   WriteText(20, 30, 2, 20, "KILLS:", 4, 0, 0);
+   WriteNum(26, 30, 2, 20,kills, 4, 0, 0);
+   
+   if(kills==20)
+    {
+	  textWindow("Mission Complete");
+	  end=0; 
+	  level++;
+   }
+    
+   if(min==0&&sec==0&&millisec==0)  //if time runs out
+   {
+	textWindow("Time is up");
+	
   scroll(UP);
   WriteText(3, 30, 17, 20, "Total Brains Missed:", 4, 0, 0);
   WriteNum( 25, 30, 17, 20, 20-kills, 4, 0, 0);
   WaitKey(KEY_A);
   WriteText(3, 30, 17, 20, "                        ", 4, 0, 0);
   scroll(DOWN);
-    }
+  end=0;
    }
    
-   
+	if(!checkMapCollision(guy.x+4,guy.y+4,16,32)&&!checkMapCollision(guy.x+7,guy.y+4,8,32)) // if the guy inside a wall
+	{
+	 guy.x=32;guy.y=40; Map.xoffset=0;Map.yoffset=0;
+	 textWindow("Your matter dispersed");
+	 dimension=1;
+	 loadMap(dimension);
+  }   
 
    //do stuff with the collisions	  
 	if(guyCollision(0)&&dimension==1)  //if touch the brains
@@ -231,15 +347,7 @@ int main(void)
 	 textWindow("Dont touch the brains!");
 	}
 	
-	if(!checkMapCollision(guy.x+4,guy.y+4,16,32)&&!checkMapCollision(guy.x+7,guy.y+4,8,32)) // if the guy inside a wall
-	{
-	 guy.x=32;guy.y=40; Map.xoffset=0;Map.yoffset=0;
-	 textWindow("Your matter dispersed");
-  }
-	 
-	 
-  //if(currentstack1<=10 && dimension==1)
-	if(bulletCollision(0,currentBullet)&& currentstack1<=10 && dimension==1)
+	if(bulletCollision(0,currentBullet) && currentstack1<=10 && dimension==1)
 	{
 		
 		if(currentstack1<10)
@@ -257,8 +365,7 @@ int main(void)
 	  
 	}	
 	
-	 //if(currentstack2<=20 && dimension==2)
-		if(bulletCollision(1,currentBullet)&&currentstack2<=20 && dimension==2)
+		if(bulletCollision(1,currentBullet) && currentstack2<=20 && dimension==2)
 	{
 		
 		if(currentstack2<20)
@@ -274,92 +381,90 @@ int main(void)
 	  kills++;
 	  currentstack2++;
 	  
+	}	
+	graphics(); // draw sprites, move sceen update sound     
 	}
 	
-	if(level==0 && guy.x>>3==2 && guy.y>>3==32 && dimension==1)
-	{
-	textWindow("Exit Found");
-  level++;
-  textWindow("Level 1");
-  textWindow("Destroy all Brain Cells");
-  
-  baddy[0].x=monsterstack[0][currentstack1]<<3; 
-	baddy[0].y=monsterstack[1][currentstack1]<<3;
-	currentstack1++;
-  baddy[0].w=16;
-  baddy[0].h=8;
-  
-	baddy[1].x=monsterstack[0][currentstack2]<<3; 
-	baddy[1].y=monsterstack[1][currentstack2]<<3;
-	currentstack2++;
-  baddy[1].w=16;
-  baddy[1].h=8;
-  
-  Map.w=800;
-  Map.h=800;
-  
-  guy.x=32;
-  guy.y=40;
-  guy.lor=1;
-  CopyOAM();
-  
-  sec=0;
-  millisec=0;
-  
-  switch(difficulty)
+}
+
+//******************************************************************************
+void level3(void)
+{ 
+	min=0;
+	sec=0;
+	millisec=0;
+	  switch(difficulty)
 	    {
-	  case 0:min=5;
+		case 2:sec=30; 
        break;
-    case 1:min=10;
+	  case 0:min=1;
        break;
-    case 2:min=3; 
+    case 1:min=2;
        break;
       }
+	 
+  end=1;
+  textWindow("Level 3");
+  textWindow("Find The Exit");
   
-  loadMap(1);
-	} 
-	
-	if(kills==20)
-	textWindow("Mission Success");	
-	
-	
-     //draw main guy sprite graphics
-     MoveSprite(&sprites[0],guy.x-Map.xoffset,guy.y-Map.yoffset);
-     
-     //draw enemies if inside sceen
-     for(x=0;x<2;x++)
-     {
-	   if(insideScreen(baddy[x])&&dimension==x+1) //if inside screen draw it else draw outside the screen
- 	     MoveSprite(&sprites[5+x],baddy[x].x-Map.xoffset,baddy[x].y-Map.yoffset);
-	   else MoveSprite(&sprites[5+x],240,160);
-     }
-     
-     for(x=0;x<3;x++)//draw the bullets if inside sceen 
-     {    
-       if((bullet[x].y+24>Map.yoffset)&&(bullet[x].y<Map.yoffset+160)&&(bullet[x].x+16>Map.xoffset)&&(bullet[x].x<Map.xoffset+240))//bullet inside sceen?
-       MoveSprite(&sprites[2+x],bullet[x].x-Map.xoffset,bullet[x].y-Map.yoffset);
-       else MoveSprite(&sprites[2+x],240,160);   
-     }
-          
-   //move the screen
+  dimension=1;
+  loadMap(dimension); //load the map
+ 
+	guy.x=32;
+  guy.y=40;
+  guy.lor=1;
+  Map.w=800;
+  Map.h=800;
+  baddy[0].x=Map.w; 
+	baddy[0].y=Map.h;
+	baddy[1].x=Map.w; 
+	baddy[1].y=Map.h;
 
-   Map.y=Map.yoffset>>3;//(Map.yoffset/8)
-   Map.x=Map.xoffset>>3;
+  //BoyScoutStopSong();
+  //BoyScoutOpenSong((unsigned char *)tune);
 
-   REG_BG1HOFS=Map.xoffset &7;
-   REG_BG1VOFS=Map.yoffset &7;
+	// Play song and loop
+	//BoyScoutPlaySong(1);
    
-   mapUpdate(); //update the maps
-
-   CopyOAM();   //copy all sprites to screen
-   WaitForVSync();  //wait to finish drawing on the sceen
-   UpdateDirectSoundA();
-   BoyScoutUpdateSong();
-   //WaitTime(0,20);
+	//Main Loop
+	while(end)
+	{	
+  
+	 KeyCheck(); //check for the keys and move main character
+   mapBoundery(); //make sure x and y on the map are possitive
+   movebullets(); //move bullets and check collision
+   updateTime(DOWN);  //increase or decrease the time
       
+   if(min==0&&sec==0&&millisec==0)  //if time runs out
+   {
+	textWindow("Time is up");
+	
+  scroll(UP);
+  WriteText(3, 30, 17, 20, "Mission Failed:", 4, 0, 0);
+  WaitKey(KEY_A);
+  WriteText(3, 30, 17, 20, "                        ", 4, 0, 0);
+  scroll(DOWN);
+  end=0;
+   }
+   
+   if(guy.x>>3==4 && guy.y>>3==33 && dimension==2)
+   {
+	  textWindow("Mission Complete");
+	  end=0; 
+	  level++;
+   }
+   
+	if(!checkMapCollision(guy.x+4,guy.y+4,16,32)&&!checkMapCollision(guy.x+7,guy.y+4,8,32)) // if the guy inside a wall
+	{
+	 guy.x=32;guy.y=40; Map.xoffset=0;Map.yoffset=0;
+	 textWindow("Your matter dispersed");
+	 dimension=1;
+	 loadMap(dimension);
+  }   
+
+	graphics(); // draw sprites, move sceen update sound     
 	}
 	
-	return 0;
 }
 
 /////////////////////Setup//////////////////////
@@ -372,10 +477,10 @@ void Setup(void)
 	
 	//Background 0 = Character Memory 0, Screen Memory 8, 16 Color
 	//dont use 0,8,16,24 for sceen memory unless using single layer, they overlap charMem.
-	REG_BG0CNT = CHAR_MEM(0) | SCREEN_MEM( 4) | BG_COLOR_16 | 0x01;
-	REG_BG1CNT = CHAR_MEM(1) | SCREEN_MEM( 6) | BG_COLOR_16 | 0x03;
-	REG_BG2CNT = CHAR_MEM(2) | SCREEN_MEM(10) | BG_COLOR_16 | 0x03;
-	REG_BG3CNT = CHAR_MEM(3) | SCREEN_MEM(12) | BG_COLOR_16 | 0x01;
+	REG_BG0CNT = CHAR_MEM(0) | SCREEN_MEM( 4) | BG_COLOR_16 | 0x01;// |BG_MOSAIC_ENABLE;
+	REG_BG1CNT = CHAR_MEM(1) | SCREEN_MEM( 6) | BG_COLOR_16 | 0x03 |BG_MOSAIC_ENABLE;
+	REG_BG2CNT = CHAR_MEM(2) | SCREEN_MEM(10) | BG_COLOR_16 | 0x03 |BG_MOSAIC_ENABLE;
+	REG_BG3CNT = CHAR_MEM(3) | SCREEN_MEM(12) | BG_COLOR_16 | 0x01;// |BG_MOSAIC_ENABLE;
 
 	//Mode 0, Background 0
 	SET_MODE(MODE_0 | BG0_ENABLE | BG1_ENABLE | BG2_ENABLE | BG3_ENABLE | OBJ_ENABLE | OBJ_MAP_1D);
@@ -445,33 +550,33 @@ void Setup(void)
 /////////////////////Setup Music//////////////////////
 void SetupMusic(void)
 {
-	unsigned int nBSSongSize;  //for sound
-  unsigned int nBSSongSize2;  //for sound
-  unsigned int nBSSongSize3;
-  unsigned int nBSSongSize4;
+	//unsigned int nBSSongSize;  //for sound
+  //unsigned int nBSSongSize2;  //for sound
+  //unsigned int nBSSongSize3;
+  //unsigned int nBSSongSize4;
   
   // Initialize BoyScout
-   BoyScoutInitialize();
+  BoyScoutInitialize();
 
 	// Get needed song memory
-	nBSSongSize = BoyScoutGetNeededSongMemory((unsigned char *)tune);
-  nBSSongSize2 = BoyScoutGetNeededSongMemory((unsigned char *)boss);
-  nBSSongSize3 = BoyScoutGetNeededSongMemory((unsigned char *)rock);
-  nBSSongSize4 = BoyScoutGetNeededSongMemory((unsigned char *)music);
+	//nBSSongSize = BoyScoutGetNeededSongMemory((unsigned char *)tune);
+  //nBSSongSize2 = BoyScoutGetNeededSongMemory((unsigned char *)boss);
+  //nBSSongSize3 = BoyScoutGetNeededSongMemory((unsigned char *)rock);
+  //nBSSongSize4 = BoyScoutGetNeededSongMemory((unsigned char *)music);
 
 	// Allocate and set BoyScout memory area
-	BoyScoutSetMemoryArea((unsigned int)malloc(nBSSongSize));
-  BoyScoutSetMemoryArea((unsigned int)malloc(nBSSongSize2));
-  BoyScoutSetMemoryArea((unsigned int)malloc(nBSSongSize3));
-  BoyScoutSetMemoryArea((unsigned int)malloc(nBSSongSize4));
+	//BoyScoutSetMemoryArea((unsigned int)malloc(nBSSongSize));
+  //BoyScoutSetMemoryArea((unsigned int)malloc(nBSSongSize2));
+  //BoyScoutSetMemoryArea((unsigned int)malloc(nBSSongSize3));
+  //BoyScoutSetMemoryArea((unsigned int)malloc(nBSSongSize4));
 
 	// Open song
-	BoyScoutOpenSong((unsigned char *)rock);
+	//BoyScoutOpenSong((unsigned char *)rock);
 
-	BoyScoutMuteChannel1(0);
-	BoyScoutMuteChannel2(0);
-	BoyScoutMuteChannel3(0);
-	BoyScoutMuteChannel4(0);
+	//BoyScoutMuteChannel1(0);
+	//BoyScoutMuteChannel2(0);
+	//BoyScoutMuteChannel3(0);
+	//BoyScoutMuteChannel4(0);
 
 	// Play song and loop
 	//BoyScoutPlaySong(1);
@@ -805,7 +910,7 @@ void KeyCheck(void)
 
     if(KEY_IS (KEY_SELECT) )
     {
-	    
+	   
 	  }
     
 	  if(KEY_IS (KEY_START) )
@@ -821,6 +926,8 @@ void KeyCheck(void)
     
    while(paused)
      {
+	    x > 10 ? x=0 : x++;
+	    REG_MOSAIC = SET_MOSAIC(x,x,0,0); 
 	    UpdateDirectSoundA();
 	    if(KEY_IS (KEY_START) )
 	     {
@@ -829,6 +936,7 @@ void KeyCheck(void)
 	     }
 	   }
 	   WriteText(12, 30, 17, 20, "      ", 4, 0, 0);
+	   REG_MOSAIC=0; 
 	   scroll(DOWN);
 	  } 	   
 }
@@ -917,24 +1025,7 @@ void DoIntro()
 	SET_MODE(MODE_4|BG2_ENABLE );
   
 	FadeOut(1);
-	
-	//compo logo, take off later
-	  LoadBackgroundPalette256((u16*)gbaxPalette);
-
-	for(y = 0; y < 160; y++)
-	{
-		for(x = 0; x < 240; x++)
-
-		{
-			PlotPixel(x,y,gbaxData[y*240+x]);//logoData contains the color values of your pict
-
-		}
-	}
-	WaitForVSync();
-	FadeIn(50);
-	WaitTime(2,0);
-  FadeOut(50);
-	
+		
   //madman logo
 	LoadBackgroundPalette256((u16*)logoPalette);
 
@@ -1009,7 +1100,7 @@ if(d==DOWN)
  WaitTime(0,16);
  UpdateDirectSoundA();
  
- BoyScoutUpdateSong();
+ //BoyScoutUpdateSong();
  }	
 else if(d==UP)
  for(x=30;x>-2;x--)
@@ -1017,7 +1108,7 @@ else if(d==UP)
  REG_BG3VOFS= -x;
  WaitTime(0,16);
  UpdateDirectSoundA();
- BoyScoutUpdateSong();
+ //BoyScoutUpdateSong();
  }
 }
 //******************************************************************************
@@ -1190,11 +1281,19 @@ void loadMap(u8 m)
  
  PlayDirectSoundA((u8*)SWAP_DATA,SWAP_SAMPRATE,(SWAP_LENGTH)/(FREQ*10));
  
- FadeOut(50);
+ //FadeOut(50);
+ 
+ for(x=0; x<5; x++)
+{
+ //REG_MOSAIC=x*25;
+ SET_MOSAIC(x<<1,x<<1,0,0);
+ WaitTime(0,100);
+}
 
- if(level==0)	
- for(x=0;x<50;x++)
-  for(y=0;y<50;y++)
+	
+ for(x=0;x<100;x++)
+  for(y=0;y<100;y++)
+     if(level==1)
    switch(m)
    {
    case 1:
@@ -1204,9 +1303,7 @@ void loadMap(u8 m)
    currentMap[x][y]=map4[x][y];
    break;
   }
-  else if(level==1)	
- for(x=0;x<100;x++)
-  for(y=0;y<100;y++)
+   else if(level==2 || level==3)
    switch(m)
    {
    case 1:
@@ -1224,7 +1321,15 @@ void loadMap(u8 m)
   }
   
  mapUpdate();
- FadeIn(50); 
+ //FadeIn(50); 
+ 
+ for(x=5; x>0; x--)
+{
+ //REG_MOSAIC=x*25;
+ SET_MOSAIC(x<<1,x<<1,0,0);
+ WaitTime(0,100);
+}
+ REG_MOSAIC=0;
    
 }
 
@@ -1297,6 +1402,7 @@ while(end)
 	       scroll(DOWN);
 	       textWindow("D-pad moves the character");
 	       textWindow("B Shoots the bullets");
+	  	   textWindow("A makes the character jump");
 	       textWindow("R changes dimenssion");
 	       textWindow("Hold B to run"); 
 	       textWindow("Hold L to move the camera");
@@ -1325,15 +1431,45 @@ while(end)
          end=0;
          scroll(DOWN);
          
-     switch(difficulty)
-	    {
-	  case 0:min=1;
-       break;
-    case 1:min=2;
-       break;
-    case 2:sec=30; 
-       break;
-      }
         }
   } 	
+}
+
+
+//******************************************************************************
+void graphics(void)
+{
+	 u8 x;
+	     //draw main guy sprite graphics
+     MoveSprite(&sprites[0],guy.x-Map.xoffset,guy.y-Map.yoffset);
+     
+     //draw enemies if inside sceen
+     for(x=0;x<2;x++)
+     {
+	   if(insideScreen(baddy[x])&&dimension==x+1) //if inside screen draw it else draw outside the screen
+ 	     MoveSprite(&sprites[5+x],baddy[x].x-Map.xoffset,baddy[x].y-Map.yoffset);
+	   else MoveSprite(&sprites[5+x],240,160);
+     }
+     
+     for(x=0;x<3;x++)//draw the bullets if inside sceen 
+     {    
+       if((bullet[x].y+24>Map.yoffset)&&(bullet[x].y<Map.yoffset+160)&&(bullet[x].x+16>Map.xoffset)&&(bullet[x].x<Map.xoffset+240))//bullet inside sceen?
+       MoveSprite(&sprites[2+x],bullet[x].x-Map.xoffset,bullet[x].y-Map.yoffset);
+       else MoveSprite(&sprites[2+x],240,160);   
+     }
+          
+   //move the screen
+
+   Map.y=Map.yoffset>>3;//(Map.yoffset/8)
+   Map.x=Map.xoffset>>3;
+
+   REG_BG1HOFS=Map.xoffset &7;
+   REG_BG1VOFS=Map.yoffset &7;
+   
+   mapUpdate(); //update the maps
+
+   CopyOAM();   //copy all sprites to screen
+   WaitForVSync();  //wait to finish drawing on the sceen
+   UpdateDirectSoundA();
+   BoyScoutUpdateSong();
 }
