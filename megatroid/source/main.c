@@ -8,22 +8,6 @@
 #include "lib.h"	
 #include "myfunctions.h"
 #include "boyscout.cpp"
-//graphic files
-#include "gfx/logo.h"
-#include "gfx/megatroid.h"
-#include "gfx/gbax.h"
-#include "gfx/terminal.h" //letters italic serif
-#include "gfx/shapes.h"
-#include "gfx/map1.h"
-#include "gfx/map2.h"
-#include "gfx/guy.h" 
-#include "gfx/background.h" 
-#include "gfx/backMap.h" 
-#include "gfx/textmap.h" 
-#include "gfx/bloob.h" 
-#include "gfx/snake.h" 
-#include "gfx/foreground.h" 
- 
 //sound files
 #include "sound/tune.cpp"
 #include "sound/boss.cpp"
@@ -33,6 +17,27 @@
 #include "sound/jump.h"
 #include "sound/mega.h"
 #include "sound/swap.h"
+//graphic files
+#include "gfx/logo.h"
+#include "gfx/megatroid.h"
+#include "gfx/gbax.h"
+#include "gfx/terminal.h" //letters italic serif
+#include "gfx/shapes.h"
+
+#include "gfx/guy.h" 
+#include "gfx/background.h" 
+#include "gfx/backMap.h" 
+#include "gfx/textmap.h" 
+#include "gfx/bloob.h" 
+#include "gfx/snake.h" 
+#include "gfx/foreground.h" 
+//maps
+#include "gfx/map1.h"
+#include "gfx/map2.h"
+#include "gfx/map3.h"
+#include "gfx/map4.h"
+ 
+
 
 
 //multiboot support
@@ -100,6 +105,7 @@ u8 bL; //button L
 
 u8 difficulty;
 u8 dimension=1;
+u8 level;
 
 const unsigned char monsterstack[2][20]={
 {34,72,38, 3,62,88,26,10,51,52,34,90,58,90,25,20,48,47,73, 5},
@@ -140,9 +146,6 @@ int main(void)
   DoIntro();
   BoyScoutStopSong();
 
-	
-
-  
 	 //Setup the graphics
 	 Setup();
    //setup ends here
@@ -158,34 +161,23 @@ int main(void)
      
   options();
   
-  end=1;
-  textWindow("Level 1");
-  textWindow("Destroy all Brain Cells");
-  
-  loadMap(1);
-  
-//Assign the starting values
+  //Assign the starting values
 	guy.x=32;
   guy.y=40;
   guy.lor=1;
-  Map.w=800;
-  Map.h=800;
   
-  baddy[0].x=monsterstack[0][currentstack1]<<3; 
-	baddy[0].y=monsterstack[1][currentstack1]<<3;
-	currentstack1++;
-  baddy[0].w=16;
-  baddy[0].h=8;
+  end=1;
   
-
-  
-	baddy[1].x=monsterstack[0][currentstack2]<<3; 
-	baddy[1].y=monsterstack[1][currentstack2]<<3;
-	currentstack2++;
-  baddy[1].w=16;
-  baddy[1].h=8;
+	textWindow("Level 0");
+	textWindow("Find The Exit");
+	
+	Map.w=400;
+  Map.h=400;
   
   BoyScoutOpenSong((unsigned char *)boss);
+  loadMap(1);
+  
+  
 
 	// Play song and loop
 	BoyScoutPlaySong(1);
@@ -213,12 +205,15 @@ int main(void)
    {
 	textWindow("Time is up");
 	
+	if(level==1)
+	  {
   scroll(UP);
   WriteText(3, 30, 17, 20, "Total Brains Missed:", 4, 0, 0);
   WriteNum( 25, 30, 17, 20, 20-kills, 4, 0, 0);
   WaitKey(KEY_A);
   WriteText(3, 30, 17, 20, "                        ", 4, 0, 0);
   scroll(DOWN);
+    }
    }
    
    
@@ -243,8 +238,8 @@ int main(void)
   }
 	 
 	 
-  if(currentstack1<=10 && dimension==1)
-	if(bulletCollision(0,currentBullet))
+  //if(currentstack1<=10 && dimension==1)
+	if(bulletCollision(0,currentBullet)&& currentstack1<=10 && dimension==1)
 	{
 		
 		if(currentstack1<10)
@@ -262,8 +257,8 @@ int main(void)
 	  
 	}	
 	
-	 if(currentstack2<=20 && dimension==2)
-		if(bulletCollision(1,currentBullet))
+	 //if(currentstack2<=20 && dimension==2)
+		if(bulletCollision(1,currentBullet)&&currentstack2<=20 && dimension==2)
 	{
 		
 		if(currentstack2<20)
@@ -279,7 +274,53 @@ int main(void)
 	  kills++;
 	  currentstack2++;
 	  
-	}	
+	}
+	
+	if(level==0 && guy.x>>3==2 && guy.y>>3==32 && dimension==1)
+	{
+	textWindow("Exit Found");
+  level++;
+  textWindow("Level 1");
+  textWindow("Destroy all Brain Cells");
+  
+  baddy[0].x=monsterstack[0][currentstack1]<<3; 
+	baddy[0].y=monsterstack[1][currentstack1]<<3;
+	currentstack1++;
+  baddy[0].w=16;
+  baddy[0].h=8;
+  
+	baddy[1].x=monsterstack[0][currentstack2]<<3; 
+	baddy[1].y=monsterstack[1][currentstack2]<<3;
+	currentstack2++;
+  baddy[1].w=16;
+  baddy[1].h=8;
+  
+  Map.w=800;
+  Map.h=800;
+  
+  guy.x=32;
+  guy.y=40;
+  guy.lor=1;
+  CopyOAM();
+  
+  sec=0;
+  millisec=0;
+  
+  switch(difficulty)
+	    {
+	  case 0:min=5;
+       break;
+    case 1:min=10;
+       break;
+    case 2:min=3; 
+       break;
+      }
+  
+  loadMap(1);
+	} 
+	
+	if(kills==20)
+	textWindow("Mission Success");	
 	
 	
      //draw main guy sprite graphics
@@ -1150,7 +1191,20 @@ void loadMap(u8 m)
  PlayDirectSoundA((u8*)SWAP_DATA,SWAP_SAMPRATE,(SWAP_LENGTH)/(FREQ*10));
  
  FadeOut(50);
-	
+
+ if(level==0)	
+ for(x=0;x<50;x++)
+  for(y=0;y<50;y++)
+   switch(m)
+   {
+   case 1:
+   currentMap[x][y]=map3[x][y];
+   break;
+   case 2:
+   currentMap[x][y]=map4[x][y];
+   break;
+  }
+  else if(level==1)	
  for(x=0;x<100;x++)
   for(y=0;y<100;y++)
    switch(m)
@@ -1273,11 +1327,11 @@ while(end)
          
      switch(difficulty)
 	    {
-	  case 0:min=5;
+	  case 0:min=1;
        break;
-    case 1:min=10;
+    case 1:min=2;
        break;
-    case 2:min=3; 
+    case 2:sec=30; 
        break;
       }
         }
