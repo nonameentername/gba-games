@@ -1,11 +1,21 @@
+curdir = $(shell pwd)
+
+define make
+	docker run --rm -v $(1):/source -it werner/devkitpro make
+endef
+
+define clean
+	docker run --rm -v $(1):/source -it werner/devkitpro make clean
+endef
+
 all:
-	docker run -v $(abspath battleship):/source -it werner/devkitpro make
-	docker run -v $(abspath megatroid):/source -it werner/devkitpro make
-	docker run -v $(abspath pong):/source -it werner/devkitpro make
-	docker run -v $(abspath tetris):/source -it werner/devkitpro make
+	$(call make, $(curdir)/battleship)
+	$(call make, $(curdir)/megatroid)
+	$(call make, $(curdir)/pong)
+	$(call make, $(curdir)/tetris)
 
 clean:
-	docker run -v $(abspath battleship):/source -it werner/devkitpro make clean
-	docker run -v $(abspath megatroid):/source -it werner/devkitpro make clean
-	docker run -v $(abspath pong):/source -it werner/devkitpro make clean
-	docker run -v $(abspath tetris):/source -it werner/devkitpro make clean
+	$(call clean, $(curdir)/battleship)
+	$(call clean, $(curdir)/megatroid)
+	$(call clean, $(curdir)/pong)
+	$(call clean, $(curdir)/tetris)
