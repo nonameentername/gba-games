@@ -19,3 +19,9 @@ clean:
 	$(call clean, $(curdir)/megatroid)
 	$(call clean, $(curdir)/pong)
 	$(call clean, $(curdir)/tetris)
+
+publish:
+	cp battleship/battleship.gba public/battleship
+	cp megatroid/megatroid.gba public/megatroid
+	cp pong/pong.gba public/pong
+	cp tetris/tetris.gba public/tetris
