@@ -15,6 +15,8 @@
 
 This repository includes gameboy advance games written using devkitpro.
 
+**[Play gba-games in your browser](https://nonameentername.github.io/gba-games/)**
+
 To facilitate building the following docker image is used: [werner/devkitpro](https://hub.docker.com/r/werner/devkitpro/)
 
 To build use the following:
