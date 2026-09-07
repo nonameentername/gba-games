@@ -34,7 +34,7 @@ jobs:
           image: werner/devkitpro
           options: -v ${{ github.workspace }}:${{ github.workspace }} --workdir ${{ github.workspace }}
           run: |
-            make
+            make build
 
       - name: Prepare Web build
         uses: nonameentername/docker-run-action@v3
