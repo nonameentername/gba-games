@@ -1,24 +1,25 @@
-curdir = $(shell pwd)
-
-define make
-	docker run --rm -v $(1):/source -it werner/devkitpro make
-endef
-
-define clean
-	docker run --rm -v $(1):/source -it werner/devkitpro make clean
-endef
+.PHONY: all build clean clean-build publish shell-gba
 
 all:
-	$(call make, $(curdir)/battleship)
-	$(call make, $(curdir)/megatroid)
-	$(call make, $(curdir)/pong)
-	$(call make, $(curdir)/tetris)
+	$(MAKE) shell-gba SHELL_COMMAND='make build'
+
+shell-gba:
+	docker run --rm -v "$(CURDIR):$(CURDIR)" -w "$(CURDIR)" werner/devkitpro $(SHELL_COMMAND)
+
+build:
+	$(MAKE) -C battleship
+	$(MAKE) -C megatroid
+	$(MAKE) -C pong
+	$(MAKE) -C tetris
 
 clean:
-	$(call clean, $(curdir)/battleship)
-	$(call clean, $(curdir)/megatroid)
-	$(call clean, $(curdir)/pong)
-	$(call clean, $(curdir)/tetris)
+	$(MAKE) shell-gba SHELL_COMMAND='make clean-build'
+
+clean-build:
+	$(MAKE) -C battleship clean
+	$(MAKE) -C megatroid clean
+	$(MAKE) -C pong clean
+	$(MAKE) -C tetris clean
 
 publish:
 	cp battleship/battleship.gba public/battleship
